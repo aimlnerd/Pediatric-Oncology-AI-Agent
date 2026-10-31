@@ -1,0 +1,34 @@
+# Cloud Run service: `va-ui` — Streamlit clinician UI with the ADK agent in-process.
+# Build context: repository root.
+#   docker build -f deploy/Dockerfile.ui -t va-ui .
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_FROZEN=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+COPY packages/agent/pyproject.toml packages/agent/pyproject.toml
+COPY packages/ui/pyproject.toml packages/ui/pyproject.toml
+
+RUN uv sync --package ui --no-install-workspace
+
+COPY packages/agent packages/agent
+COPY packages/ui packages/ui
+
+RUN uv sync --package ui
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    GOOGLE_GENAI_USE_VERTEXAI=1 \
+    UI_AGENT_BACKEND=adk \
+    UI_MAPPING_SOURCE=auto \
+    PORT=8080
+
+CMD exec streamlit run packages/ui/src/ui/app.py \
+    --server.address 0.0.0.0 \
+    --server.port "${PORT}" \
+    --server.headless true \
+    --browser.gatherUsageStats false

@@ -1,13 +1,13 @@
 # UI Implementation Plan — Virtual Assistant (BSPHO Pediatric Hem/Onc)
 
-> Source of truth: [README.md](../README.md) — "Solution Design (Draft v2)" section; terms per [GLOSSARY.md](../GLOSSARY.md). Deep Search (sub-protocols) is deferred.
+> Source of truth: [README.md](../../README.md) — "Solution Design (Draft v1)" section.
 > Scope: `ui/` package only (Streamlit app + GCS/admin sync helper). The AI Solution Layer (`agent/`) is a separate, decoupled module consumed through its ADK `Runner` interface.
 
 ## 1. Goal & Constraints
 
 Build a **NotebookLM-style, 2-column Streamlit web app** that lets a pediatric oncologist:
-1. Select their center (Tier 1 — Center Scope; stand-in for BSPHO auth).
-2. Check/uncheck protocols within the Center Scope (Tier 2 — Protocol Selection).
+1. Select their hospital (Tier 1 filter).
+2. Check/uncheck the protocols applicable to that hospital (Tier 2 filter), optionally including subprotocols.
 3. Chat with the grounded ADK agent and see inline `[Document Title, Page #]` citations.
 4. (Admin) Upload/replace a protocol PDF, tag participating hospitals, and trigger re-indexing.
 
@@ -45,14 +45,14 @@ Rationale for splitting beyond the README's single `app.py`: keeps each Streamli
 
 ```python
 st.session_state = {
-    "hospital": str | None,  # Tier 1 selection, e.g. "UZA"
-    "available_protocols": list[dict],  # [{id, title, doc_type}] filtered by hospital
-    "selected_protocol_ids": set[str],  # Tier 2 checklist state
-    "chat_history": list[{role, content, citations}],
-    "adk_session_id": str,  # Bound to ADK InMemorySessionService session
-    "pending_interrupt_id": str
-    | None,  # Set when the workflow paused on a Clarifying Question (RequestInput)
-    "is_admin": bool,  # Toggles Clinician vs Admin view
+  "hospital": str | None,                 # Tier 1 selection, e.g. "UZA"
+  "available_protocols": list[dict],      # [{id, title, doc_type}] filtered by hospital
+  "selected_protocol_ids": set[str],      # Tier 2 checklist state
+  "include_subprotocols": bool,
+  "chat_history": list[{role, content, citations}],
+  "adk_session_id": str,                  # Bound to ADK InMemorySessionService session
+  "pending_clarification": dict | None,   # Tracks agent follow-up questions mid-turn
+  "is_admin": bool,                       # Toggles Clinician vs Admin view
 }
 ```
 
@@ -65,7 +65,7 @@ st.session_state = {
 2. Top-level view switch: `st.sidebar.radio("View", ["Clinician", "Admin"])` → routes to clinician 2-column layout or the admin form.
 3. Clinician view:
    - `col_sidebar, col_chat = st.columns([1, 3])`
-   - `col_sidebar` → `render_sidebar()` (Tier 1 + Tier 2).
+   - `col_sidebar` → `render_sidebar()` (Tier 1 + Tier 2 + subprotocol toggle).
    - `col_chat` → `render_chat()` (history + input + citations).
 4. Admin view → `render_admin()` full-width form.
 
@@ -74,6 +74,7 @@ st.session_state = {
 - **Tier 1:** `st.selectbox("Hospital / Center", HOSPITALS)` where `HOSPITALS = ["UZA", "UZG", "UZL", "HUDERF", "UCL", "CHU"]`.
 - On change, load the protocol list for that hospital from `hospital_mapping.json` (via a cached loader, `@st.cache_data(ttl=...)`, pointed at GCS in prod / local JSON in dev).
 - **Tier 2:** render one `st.checkbox(protocol.title, value=True, key=f"proto_{protocol.id}")` per applicable protocol inside an `st.expander` or scrollable container; sync checked ids into `selected_protocol_ids`.
+- **Deep search toggle:** `st.toggle("Include Subprotocols (Deep Search)")` → `include_subprotocols`.
 - Guard rail: disable the chat input (and show a warning) if `selected_protocol_ids` is empty.
 
 ## 7. Chat Panel (`chat.py`)
@@ -83,8 +84,8 @@ st.session_state = {
 - Input: `st.chat_input("Ask about protocols...")`, disabled when no protocols selected.
 - On submit:
   1. Append user message to `chat_history`.
-  2. If `pending_interrupt_id` is set, call `agent_client.resume(reply, pending_interrupt_id, adk_session_id)`; otherwise call `agent_client.send(query, center, selected_protocol_ids, adk_session_id)`.
-  3. If the result is a **Clarifying Question**, render it as an assistant message and store its `interrupt_id` in `pending_interrupt_id`; otherwise clear `pending_interrupt_id`.
+  2. Call `agent_client.send(query, selected_protocol_ids, include_subprotocols, adk_session_id)`.
+  3. If the agent response is a **clarifying question**, render it as an assistant message and keep `pending_clarification` set so the next user input is treated as the answer to that question (same ADK session, no new turn framing needed beyond normal chat continuation).
   4. Append assistant answer + citations to `chat_history`; `st.rerun()` to refresh the view.
 - Feedback (stretch): `st.feedback("thumbs")` under each assistant message, persisted to a lightweight log (local file or GCS) keyed by session id and turn index.
 
@@ -93,9 +94,7 @@ st.session_state = {
 - Wraps ADK `Runner` + `InMemorySessionService` so `chat.py`/`app.py` never import `agent/` internals directly — keeps the UI/AI layers decoupled per the README's architecture split.
 - API surface:
   - `get_or_create_session(adk_session_id: str | None) -> str`
-  - `send(query: str, center: str, selected_protocols: list[str], session_id: str) -> AgentTurnResult` — writes center + Protocol Selection into ADK session state, then runs the workflow.
-  - `resume(reply: str, interrupt_id: str, session_id: str) -> AgentTurnResult` — resumes a workflow paused on a Clarifying Question.
-  - `AgentTurnResult` has `kind` (`answer` / `not_covered` / `clarifying_question` / `out_of_scope`), `body_markdown`, `citations` (resolved: protocol, version, page, section), `interrupt_id`.
+  - `send(query: str, selected_protocols: list[str], include_subprotocols: bool, session_id: str) -> AgentTurnResult` where `AgentTurnResult` has `answer_markdown`, `citations`, `is_clarifying_question`.
 - Until `agent/` is implemented/stable, `agent_client.py` can read from `mock_data/sample_responses.json` behind the same function signature, so swapping in the real agent is a one-line change.
 
 ## 9. Admin View (`admin.py` + `gcs_sync.py`)
@@ -103,8 +102,9 @@ st.session_state = {
 - `st.file_uploader("Upload protocol PDF", type="pdf")`.
 - `st.text_input("Protocol ID / title")`.
 - `st.multiselect("Participating hospitals", HOSPITALS)`.
+- `st.radio("Document type", ["protocol", "subprotocol"])`.
 - `st.button("Sync & Re-index")` →
-  1. `gcs_sync.upload_pdf(file)` → writes to `gs://<bucket>/protocols/` (an amendment replaces the previous version under the same protocol ID).
+  1. `gcs_sync.upload_pdf(file, doc_type)` → writes to `gs://<bucket>/protocols/` or `/subprotocols/`.
   2. `gcs_sync.update_mapping(protocol_id, hospitals)` → updates `hospital_mapping.json` + appends/updates `metadata.jsonl`.
   3. `gcs_sync.trigger_incremental_import()` → calls Vertex AI Search `import_documents` (`INCREMENTAL` mode).
   4. Show `st.success` with upload + mapping + re-index confirmation (or `st.error` with the failure stage).

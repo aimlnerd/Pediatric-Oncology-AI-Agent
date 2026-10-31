@@ -1,0 +1,90 @@
+{
+  "hospitals": ["UZA", "UZG", "UZL", "HUDERF", "UCL", "CHU"],
+  "protocols": [
+    {
+      "id": "ALLTogether1",
+      "title": "ALLTogether1 Master Protocol v6.0",
+      "doc_type": "protocol",
+      "hospitals": ["UZA", "UZG", "UZL", "HUDERF", "UCL", "CHU"]
+    },
+    {
+      "id": "CHIP-AML22",
+      "title": "CHIP-AML22 Master Protocol v2.2",
+      "doc_type": "protocol",
+      "hospitals": ["UZA", "UZG", "UZL", "HUDERF"]
+    },
+    {
+      "id": "HRNBL2",
+      "title": "HRNBL2 Protocol (Neuroblastoma)",
+      "doc_type": "protocol",
+      "hospitals": ["UZG", "UCL", "CHU"]
+    },
+    {
+      "id": "FaR-RMS",
+      "title": "FaR-RMS Protocol v2.0c",
+      "doc_type": "protocol",
+      "hospitals": ["UZA", "UZL", "HUDERF", "UCL"]
+    },
+    {
+      "id": "LCH-IV",
+      "title": "LCH-IV Protocol v1.7",
+      "doc_type": "protocol",
+      "hospitals": ["UZA", "UZG", "UZL", "HUDERF", "UCL", "CHU"]
+    },
+    {
+      "id": "HLH-2004",
+      "title": "HLH-2004 Protocol",
+      "doc_type": "protocol",
+      "hospitals": ["UCL", "CHU"]
+    },
+    {
+      "id": "EuroNet-PHL-C2",
+      "title": "EuroNet-PHL-C2 Trial Protocol v7.0",
+      "doc_type": "protocol",
+      "hospitals": ["UZA", "UZG", "HUDERF", "CHU"]
+    },
+    {
+      "id": "SIOP-LGG-2004",
+      "title": "SIOP-LGG-2004 Master Protocol",
+      "doc_type": "protocol",
+      "hospitals": ["UZG", "UZL", "UCL"]
+    }
+  ],
+  "subprotocols": [
+    {
+      "id": "ALLTogether1-InO",
+      "title": "ALLTogether1 InO Sub-protocol v6.0",
+      "doc_type": "subprotocol",
+      "parent_protocol_id": "ALLTogether1",
+      "hospitals": ["UZA", "UZG", "UZL", "HUDERF", "UCL", "CHU"]
+    },
+    {
+      "id": "ALLTogether1-Thrombosis",
+      "title": "ALLTogether Thrombosis Guidelines v1.0",
+      "doc_type": "subprotocol",
+      "parent_protocol_id": "ALLTogether1",
+      "hospitals": ["UZA", "UZG", "UZL", "HUDERF", "UCL", "CHU"]
+    },
+    {
+      "id": "ALLTogether1-Pancreatitis",
+      "title": "ALLTogether Pancreatitis Guidelines v1.0",
+      "doc_type": "subprotocol",
+      "parent_protocol_id": "ALLTogether1",
+      "hospitals": ["UZA", "UZG", "UZL", "HUDERF", "UCL", "CHU"]
+    },
+    {
+      "id": "ALLTogether1-Maintenance",
+      "title": "ALLTogether Maintenance Therapy Guidelines v2.0",
+      "doc_type": "subprotocol",
+      "parent_protocol_id": "ALLTogether1",
+      "hospitals": ["UZA", "UZG", "UZL", "HUDERF", "UCL", "CHU"]
+    },
+    {
+      "id": "ALLTogether1-Glucarpidase",
+      "title": "ALLTogether A2G Glucarpidase Guidelines v1.1",
+      "doc_type": "subprotocol",
+      "parent_protocol_id": "ALLTogether1",
+      "hospitals": ["UZA", "UZG", "UZL", "HUDERF", "UCL", "CHU"]
+    }
+  ]
+}

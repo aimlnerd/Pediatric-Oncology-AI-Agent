@@ -1,0 +1,25 @@
+# Controls what `gcloud builds submit` uploads as the build context.
+# Without this file gcloud derives the list from .gitignore; being explicit
+# keeps the upload small and predictable.
+
+.git
+.gitignore
+.github
+.venv
+venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.DS_Store
+
+# Protocol PDFs and derived datasets live in GCS, never in the build context.
+data
+design
+
+# Local-only uv overrides; the container needs none.
+uv.toml
+
+.env
+.env.*

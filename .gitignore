@@ -2,6 +2,8 @@
 __pycache__/
 *.py[codz]
 *$py.class
+agent_engine_staging/
+.agent_engine_staging/
 
 # C extensions
 *.so
@@ -221,10 +223,7 @@ __marimo__/
 
 data/
 *.DS_Store
+*.adk
 swg-use-cases/*
-
-# Local interpreter pin (machine-specific; see AGENTS.md)
-.python-version
-
-# adk web local session store
-.adk/
+uv.toml
+*.idea

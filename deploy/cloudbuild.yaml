@@ -1,0 +1,33 @@
+# Generic Cloud Build config: builds one Dockerfile from this repo and pushes it.
+#
+#   gcloud builds submit . \
+#     --region="$REGION" --project="$PROJECT_ID" \
+#     --config=deploy/cloudbuild.yaml \
+#     --substitutions=_IMAGE=<full-image-ref>
+#
+# Defaults to deploy/Dockerfile.ui, which is the image currently running in
+# production. The root `Dockerfile` is hardened but does not work yet — see the
+# KNOWN ISSUE banner at the top of that file.
+
+substitutions:
+  _IMAGE: ""
+  _DOCKERFILE: deploy/Dockerfile.ui
+
+options:
+  # No machineType: some projects (e.g. qwiklabs/lab tenants) are not permitted
+  # to request one. The default worker is sufficient for these images.
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args:
+      - build
+      - --file=${_DOCKERFILE}
+      - --tag=${_IMAGE}
+      - .
+
+images:
+  - ${_IMAGE}
+
+timeout: 1800s

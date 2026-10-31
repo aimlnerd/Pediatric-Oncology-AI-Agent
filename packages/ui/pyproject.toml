@@ -5,6 +5,22 @@ build-backend = "hatchling.build"
 [project]
 name = "ui"
 version = "0.1.0"
-description = "UI library"
+description = "BSPHO Pediatric Oncology Streamlit UI & GCS Document Sync"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "agent",
+    "streamlit>=1.38.0",
+    "google-cloud-storage>=2.14.0",
+    "google-cloud-discoveryengine>=0.13.0",
+    "openpyxl>=3.1.0",
+]
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.uv.sources]
+agent = { workspace = true }

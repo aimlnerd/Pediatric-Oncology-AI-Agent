@@ -1,0 +1,92 @@
+{
+  "rules": [
+    {
+      "id": "leukemia-counts-clarify",
+      "keywords": ["platelet", "white blood cell", "blood count", "chemotherapy"],
+      "kind": "clarifying_question",
+      "answer_markdown": "Before I can give you the exact haematological thresholds, I need a few clinical discriminators:\n\n1. Is this **ALL** or **AML**?\n2. Which **treatment phase / timepoint** (e.g. induction, consolidation, maintenance)?\n3. What **risk group** has the patient been stratified into?\n\nThe required platelet and white blood cell counts differ per protocol and per phase.",
+      "citations": []
+    },
+    {
+      "id": "all-maintenance-counts",
+      "keywords": ["all", "maintenance", "platelet"],
+      "kind": "answer",
+      "required_protocol_ids": ["ALLTogether1"],
+      "answer_markdown": "For maintenance therapy, treatment is continued when the counts are above the protocol-defined thresholds:\n\n- **Platelets:** \u2265 50 \u00d7 10\u2079/L\n- **White blood cells (WBC):** \u2265 1.5 \u00d7 10\u2079/L\n- **Absolute neutrophil count (ANC):** \u2265 0.5 \u00d7 10\u2079/L\n\nIf counts fall below these thresholds, the protocol specifies a dose reduction or a temporary interruption until recovery.",
+      "citations": [
+        {
+          "doc_title": "ALLTogether1 Master Protocol",
+          "version": "v6.0",
+          "page": 214,
+          "section": "Maintenance Therapy"
+        }
+      ]
+    },
+    {
+      "id": "thrombosis-deep-search",
+      "keywords": ["thrombosis", "anticoagulation", "pancreatitis"],
+      "kind": "answer",
+      "requires_subprotocols": true,
+      "required_protocol_ids": ["ALLTogether1-Thrombosis", "ALLTogether1-Pancreatitis"],
+      "answer_markdown": "Management is described in the supporting guideline documents:\n\n- Suspected thrombosis should be confirmed by imaging before starting anticoagulation.\n- Low molecular weight heparin (LMWH) is the first-line agent, with anti-Xa monitoring.\n- Asparaginase may be continued once the patient is adequately anticoagulated.",
+      "citations": [
+        {
+          "doc_title": "ALLTogether Thrombosis Guidelines",
+          "version": "v1.0",
+          "page": 7,
+          "section": "Treatment of Thrombosis"
+        }
+      ]
+    },
+    {
+      "id": "neuroblastoma-mycn",
+      "keywords": ["neuroblastoma", "mycn", "high risk"],
+      "kind": "answer",
+      "required_protocol_ids": ["HRNBL2"],
+      "answer_markdown": "**MYCN** amplification is one of the defining criteria for high-risk stratification in neuroblastoma. Patients with MYCN-amplified disease are allocated to the high-risk arm regardless of INRG stage in the age groups specified by the protocol.",
+      "citations": [
+        {
+          "doc_title": "HRNBL2 Protocol",
+          "version": "2019-001068-31",
+          "page": 58,
+          "section": "Risk Stratification"
+        }
+      ]
+    },
+    {
+      "id": "hodgkin-response-assessment",
+      "keywords": ["hodgkin", "response assessment", "pet"],
+      "kind": "answer",
+      "required_protocol_ids": ["EuroNet-PHL-C2"],
+      "answer_markdown": "Early response assessment is performed after two courses of OEPA using **FDG-PET** combined with morphological imaging. An adequate response (PET-negative) allows de-escalation of subsequent consolidation therapy.",
+      "citations": [
+        {
+          "doc_title": "EuroNet-PHL-C2 Trial Protocol",
+          "version": "v7.0",
+          "page": 96,
+          "section": "Early Response Assessment"
+        }
+      ]
+    }
+  ],
+  "out_of_scope": {
+    "keywords": [
+      "adult",
+      "diabetes",
+      "hypertension",
+      "pregnancy",
+      "cardiology",
+      "weather"
+    ],
+    "answer_markdown": "I can only answer questions grounded in the selected BSPHO pediatric haematology & oncology protocols. This question appears to fall outside that scope, so I cannot provide an answer."
+  },
+  "not_covered": {
+    "answer_markdown": "I could not find information covering this question in the protocols you currently have selected. Try selecting additional protocols in the sidebar, or rephrase your question."
+  },
+  "no_protocols_selected": {
+    "answer_markdown": "No protocols are currently selected. Please select at least one protocol in the sidebar so I can ground my answer in the correct documents."
+  },
+  "deep_search_offer": {
+    "answer_markdown": "This topic is covered in the **subprotocols / supporting guidelines** rather than the master protocols. Would you like me to run a deep search across the subprotocols? You can enable **\"Include Subprotocols (Deep Search)\"** in the sidebar."
+  }
+}
