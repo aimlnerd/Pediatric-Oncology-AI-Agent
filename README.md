@@ -233,5 +233,6 @@ swg_2026_va/
 └── swg-use-cases/                  # provided dataset (gitignored)
 ```
 ### 8. UI
-
+![streamlit](docs/diagrams/streamlit_ui.png)
 ![ADK UI](docs/diagrams/ADK_WEBUI.jpeg)
+
