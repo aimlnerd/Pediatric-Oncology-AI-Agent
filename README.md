@@ -114,7 +114,7 @@ Sources are the Mermaid files in [docs/diagrams/](docs/diagrams/); the images be
 
 Four LLM agents (blue) and three function nodes run as one ADK 2.13 `Workflow`. The retriever is the only agent with a tool; the tool is the only code that touches the search index, and it takes nothing from the model except the query text.
 
-![ADK WORKFLOW](docs\diagrams\ADK_workflow.png)
+![ADK WORKFLOW](docs/diagrams/ADK_workflow.png)
 | Colour | Meaning |
 |---|---|
 | Beige (outside the box) | Input from the clinician: the question, and the center and protocol selection set once per conversation |
@@ -234,4 +234,4 @@ swg_2026_va/
 ```
 ### 8. Results
 
-![ADK UI](docs\diagrams\ADK_WEBUI.jpeg)
+![ADK UI](docs/diagrams/ADK_WEBUI.jpeg)
