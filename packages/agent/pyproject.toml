@@ -1,0 +1,14 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agent"
+version = "0.1.0"
+description = "Agent library"
+requires-python = ">=3.13"
+dependencies = [
+    "google-adk==2.13.0",
+    "google-cloud-discoveryengine>=0.13",
+    "pydantic>=2.8",
+]
