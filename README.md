@@ -232,6 +232,6 @@ swg_2026_va/
 ├── docs/adr/  docs/diagrams/  design/  GLOSSARY.md  AGENTS.md
 └── swg-use-cases/                  # provided dataset (gitignored)
 ```
-### 8. Results
+### 8. UI
 
 ![ADK UI](docs/diagrams/ADK_WEBUI.jpeg)
