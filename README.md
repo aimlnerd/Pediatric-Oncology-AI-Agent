@@ -236,3 +236,7 @@ swg_2026_va/
 6. **Entry point for the UI.** The design promises one `send` / `resume` function; it does not exist yet (only `root_agent` for adk web). Build it with the Streamlit UI per [design/ui-implementation-plan.md](design/ui-implementation-plan.md). Resuming a pause needs the `adk_request_input` interrupt id and `invocation_id` (see `tests/test_workflow.py::Chat.answer_question`).
 7. **Manifest gaps:** six protocols have no version in their filename (`alcl-99-nhl`, `beacon2`, `hlh-2004`, `hrnbl2`, `euronet-recommendations`, `ewog-mds-2006`), and a few versions are guesses (`ewog-saa-2010`="Final", `inter-b-nhl-ritux-2010`="4", `siop-lgg-2004`="I"). Fill them from the PDF title pages in `scripts/build_protocol_manifest.py` (`VERSIONS`), rebuild the manifest, and re-run `scripts/search_index.sh import`.
 8. **Admin flow, feedback buttons, Deep Search (sub-protocols), and the Dutch patient folder (Golden Q8/Q9)** are deferred; see Requirements.
+
+## Data and use cases
+Find data and other use cases under
+Coding/hackathon in main Onedrive account
