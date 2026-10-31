@@ -8,9 +8,6 @@ layout: paginated
 
 # UC1 Quickstart: Virtual Assistant in Pediatric Hematology & Oncology (OncoProtocol-Assist)
 
-> aside negative
-> **Not authoritative.** Requirements come from the BSPHO deck (`SwG 2026_UC1_Pediatric Hematology & Oncology.pptx`); participation and expected answers come from `SwG-UC1-Golden Dataset and mapping table.xlsx`. Commands, function names and console outputs below are illustrative, not an API contract. Terminology follows [GLOSSARY.md](GLOSSARY.md): **Tier 1 = Center Scope**, **Tier 2 = Protocol Selection**; **Deep Search** (sub-protocols) is a separate feature and is **deferred**.
-
 ## 1. Introduction & Clinical Challenge
 
 Duration: 02:00
@@ -21,19 +18,19 @@ Pediatric hematology and oncology treatment protocols (`ALLTogether1 v6.0`, `SIO
 
 In this quickstart codelab, you will build and validate a **2-Tier Sovereign Clinical Protocol Assistant** in `europe-west1` that:
 
-1. **Center Scope (Tier 1)**: Restricts retrieval to the protocols the clinician's center (`UZA`, `UZL`, `CHU`, `UCL`, `HUDERF`, `UZG`) participates in, across **27 master protocols**.
-2. **Protocol Selection (Tier 2)**: The clinician checks/unchecks protocols from their Center Scope in the left sidebar to scope each question.
-3. *(Deferred)* **Deep Search**: Offering to extend search into the 5 `ALLTogether1` sub-protocols (`InO`, `A2G Glucarpidase`, `Maintenance`, `Pancreatitis`, `Thrombosis`). Not in the current build.
-4. **Asks Proactive Clarifying Questions**: When a clinician asks an under-specified question (e.g., *"A patient has 150,000 WBC, what should I do?"* or *"A 3-year-old with metastatic neuroblastoma—which arm?"*), the assistant asks for the missing clinical discriminator (AML vs. ALL; MYCN amplification status) before citing protocol logic.
-5. **Enforces Verbatim Citations & Out-of-Scope Refusals**: Every clinical answer includes `[Protocol_ID, Version, Page, Section]` citations and strictly refuses adult or non-oncology queries.
+1. **Filters by Belgian Hospital Participation (Tier 1)**: Restricts retrieval across the **6 Belgian pediatric oncology centers** (`UZA`, `UZL`, `CHU`, `UCL`, `HUDERF`, `UZG`) across **27 master protocols** and **5 `ALLTogether1` sub-protocols**.
+2. **Escalates via Sub-Protocol Deep Search (Tier 2)**: Automatically expands search into the 5 `ALLTogether1` sub-protocols (`InO`, `A2G Glucarpidase`, `Maintenance`, `Pancreatitis`, `Thrombosis`) when complications like stroke-like events (SLS), sinus venous thrombosis, or high-dose methotrexate toxicity arise.
+3. **Asks Proactive Clarifying Questions**: When a clinician asks an under-specified question (e.g., *"A patient has 150,000 WBC, what should I do?"* or *"A 3-year-old with metastatic neuroblastoma—which arm?"*), the assistant asks for the missing clinical discriminator (AML vs. ALL; MYCN amplification status) before citing protocol logic.
+4. **Enforces Verbatim Citations & Out-of-Scope Refusals**: Every clinical answer includes `[Protocol_ID, Version, Page, Section]` citations and strictly refuses adult or non-oncology queries.
 
 ```mermaid
 flowchart LR
-    Doc["Clinician Query + Center (Tier 1) + Protocol Selection (Tier 2)"] --> HSV["Scope Guard (NISS redaction + out-of-scope refusal)"]
-    HSV --> Clarify{"Missing Clinical Discriminator? (AML vs ALL / MYCN / Age)"}
+    Doc["Clinician Query + Hospital ID (UZA / UZL / CHU / UCL / HUDERF / UZG)"] --> HSV["HippocraticSafetyValve (NISS PII + Scope Guard)"]
+    HSV --> Tier1["Tier 1: Belgian Hospital Protocol Matrix (27 Master Protocols)"]
+    Tier1 --> Clarify{"Missing Clinical Discriminator? (AML vs ALL / MYCN / Age)"}
     Clarify -- "Yes" --> Ask["Ask Targeted Clarifying Question"]
-    Clarify -- "No" --> RAG["Retriever: Vertex AI Search filtered to Protocol Selection"]
-    RAG --> Cite["Answerer: grounded response with [Protocol, Version, Page, Section]"]
+    Clarify -- "No" --> Tier2["Tier 2: Multimodal RAG + ALLTogether1 Sub-Protocol Deep Search"]
+    Tier2 --> Cite["Verified Response with [Protocol_ID, Version, Page, Section]"]
 ```
 
 > aside positive
@@ -72,11 +69,11 @@ You should see output similar to:
 > aside negative
 > **Data Governance Guardrail**: Never upload real patient names, hospital MRNs, or Belgian National Register numbers (`NISS` / `INSZ`) to any prompt or storage bucket. All hackathon cases use 100% synthetic vignettes.
 
-## 3. Tier-1 Center Scope
+## 3. Tier-1 Belgian Hospital Protocol Filtering & Sub-Protocol Deep Search
 
 Duration: 05:00
 
-Not every Belgian hospital participates in every SIOP or ITCC trial. Per the mapping table, **UZ Gent (`UZG`)** participates in all **27** protocols in the dataset, whereas **UZ Antwerpen (`UZA`)** participates in **21** — `UZA` does not run `BEACON2`, `CHIP-AML22`, `EWOG-SAA 2010`, `FaR-RMS`, `HRNBL2` or `ML DS 2018`.
+Not every Belgian hospital participates in every SIOP or ITCC trial. For example, **UZ Gent (`UZG`)** participates in all **27** protocols in the dataset, whereas **UZ Antwerpen (`UZA`)** participates in **21** (e.g., `UZA` does not open `ALCL-99`, `BEACON2`, `EsPhALL2017`, `HEM-iSMART`, or `Inter-B-NHL ritux 2010`).
 
 ### Create the Hospital Filter & Golden Dataset Runner
 
@@ -102,44 +99,49 @@ python3 test_uc1_quickstart.py
 You should see output similar to:
 
 ```console
-UZG Active Protocols: 27
-UZA Active Protocols: 21 | Excluded at UZA: ['BEACON2', 'CHIP-AML22', 'EWOG-SAA 2010', 'FaR-RMS', 'HRNBL2', 'ML DS 2018']
+UZG Active Protocols: 27 (+ 5 ALLTogether1 sub-protocols)
+UZA Active Protocols: 21 | Excluded at UZA: ['ALCL-99', 'BEACON2', 'EsPhALL2017', 'HEM-iSMART', 'ICC APL study 02', 'SIOP-HR-NBL2']
 ```
 
 ## 4. Multimodal Protocol Grounding & Golden Dataset Q1–Q9
 
 Duration: 07:00
 
-The UC1 evaluation tests your assistant against the **Golden Dataset** in `SwG-UC1-Golden Dataset and mapping table.xlsx` (`Q1`–`Q8`) plus `Q9` (the reference patient folder PDF). The spreadsheet is authoritative; summaries:
+The UC1 evaluation rubric tests your assistant against **9 Golden Dataset scenarios (`Q1`–`Q9`)** authored by Dr. Ruben van Paemel:
 
-- **`Q1` (Must, `BEACON2` / `HR-NBL2`)**: Haematological and non-haematological conditions before starting **dinutuximab beta**.
-- **`Q2` (Must, `HR-NBL2`)**: Staging / extra examinations for a 3-year-old with poorly differentiated neuroblastoma **without MYCN amplification** (SIOPEN-modified INRG; high-risk only if Stage M).
-- **`Q3` (Must, `FaR-RMS`)**: Staging investigations required when rhabdomyosarcoma is suspected.
-- **`Q4` (Must, `CHIP-AML22`)**: Acute management of a patient with **150,000 WBC** (hyperleukocytosis). The reference answer is CHIP-AML22-based; the AML vs ALL discriminator is a candidate Clarifying Question.
-- **`Q5` / `Q6` (Must, negative)**: Adult antihypertensive question and pediatric asthma step-up — both must be refused as out of scope.
-- **`Q7` (Should, `ALLTogether1`)**: Stroke-like event under ALLTogether1 — possible causes and treatment per the master protocol. (Sub-protocol escalation belongs to the deferred Deep Search feature.)
-- **`Q8` / `Q9` (Could, `FaR-RMS`)**: Dutch patient information folder about FaR-RMS treatment and timepoints (`Golden Dataset_Question9_FaR-RMS_patientenfolder-3.pdf`).
+- **`Q1` (`BEACON2` vs `HR-NBL2`)**: Starting criteria (`PLT`, `ANC`, liver transaminases, neurological status, pain premedication) before initiating **dinutuximab beta**.
+- **`Q2` (`HR-NBL2` Staging)**: A 3-year-old with metastatic neuroblastoma (`>18 months`, Stage M) requires **MYCN amplification status** clarification before assigning high-risk arm specifics.
+- **`Q3` (`FaR-RMS v2.0c` Section 12.1)**: A child with rhabdomyosarcoma has **3 subpleural lung nodules `<5 mm`**. The protocol explicitly states **no lung biopsy is indicated** (`<=4 nodules <5 mm` = negative pulmonary metastasis; avoid thoracotomy).
+- **`Q4` (`150,000 WBC` Hyperleukocytosis)**: Must ask whether the patient has **AML (`CHIP-AML22`)** or **ALL (`ALLTogether1`)**, then return cytoreduction/hydration/rasburicase rules and warn against packed RBC transfusion due to hyperviscosity/leukostasis.
+- **`Q7` (`ALLTogether1` Stroke-Like Event + Sub-Protocol Deep Search)**: Retrieves Section 11.4.4 from the `ALLTogether1 v6.0` master protocol **and** escalates to `subprotocols/ALLTogether_Thrombosis _Guidelines_FINAL Version 1.0_05AUG19.pdf` (`LMWH enoxaparin`, `antithrombin III >80%` during PEGasparaginase).
+- **`Q8` & `Q9` (`FaR-RMS` Dutch Patient Brochure)**: Generates a 13-year-old friendly Dutch explanation (`FaR-RMS_patientenfolder-3.pdf`).
 
 ### Run the UC1 ADK Agent on Golden Dataset Scenarios
 
 ```bash
-# Query Q3 (FaR-RMS staging investigations) via swg-ctl
+# Query Q3 (FaR-RMS lung nodules) via swg-ctl
 ./bin/swg-ctl agents run \
   --agent uc1_oncoprotocol \
-  --query "What staging investigations are required by the FAR-RMS protocol if a patient is suspected of having rhabdomyosarcoma?"
+  --query "UZG patient with rhabdomyosarcoma (FaR-RMS) has 3 small lung nodules under 4mm on chest CT. Should we biopsy the lung lesions?"
 
 # Query Q4 (150,000 WBC Hyperleukocytosis — test proactive clarification)
 ./bin/swg-ctl agents run \
   --agent uc1_oncoprotocol \
   --query "Patient presents with 150,000 white blood cells (hyperleukocytosis). What should I do?"
 
-# Query Q7 (ALLTogether1 stroke-like event — master protocol only)
+# Query Q7 (ALLTogether1 Stroke-Like Syndrome + Thrombosis sub-protocol deep search)
 ./bin/swg-ctl agents run \
   --agent uc1_oncoprotocol \
-  --query "I have a patient treated according to the ALLtogether protocol who developed a stroke-like event, does the protocol recommend anything on the possible causes and treatment?"
+  --query "ALLTogether1 patient develops a stroke-like event and suspected sinus venous thrombosis after PEGasparaginase. What is the diagnostic and LMWH management?"
 ```
 
-Compare each answer against the "Suggested shortened response" column of the Golden Dataset; every claim must carry a `[Protocol, Version, Page, Section]` citation.
+You should see output similar to:
+
+```console
+[uc1_oncoprotocol] Status: VERIFIED_CITATION
+Citation: [FaR-RMS v2.0c (21-Mar-2024), Section 12.1 Pulmonary Metastases Assessment]
+Action: DO NOT BIOPSY. In FaR-RMS v2.0c, <=4 pulmonary micronodules <5 mm are classified as indeterminate/negative for pulmonary metastasis. Lung biopsy is NOT indicated.
+```
 
 ## 5. Negative Safety Testing & Out-of-Scope Refusals
 
@@ -198,6 +200,6 @@ You should see output similar to:
 ```
 
 ### 3-Minute Wintercircus Jury Demo Tips
-- **Show Center Scope first**: Switch between `UZG` (`27` protocols) and `UZA` (`21` protocols) to prove your assistant respects local Belgian trial participation.
-- **Show Protocol Selection**: Uncheck a protocol and show the assistant answering "not covered in your selected protocols" instead of drawing on it.
-- **Demonstrate Proactive Clarification (`Q2` / `Q4`)**: Show the assistant asking for the missing Clinical Discriminator before answering.
+- **Show Tier-1 Hospital Filtering first**: Switch between `UZG` (`27` protocols) and `UZA` (`21` protocols) to prove your assistant respects local Belgian hospital trial activation.
+- **Demonstrate Proactive Clarification (`Q2` / `Q4`)**: Show the assistant asking whether `150,000 WBC` is AML (`CHIP-AML22`) or ALL (`ALLTogether1`) before recommending cytoreduction.
+- **Show Sub-Protocol Deep Search (`Q7`)**: Highlight automatic escalation from `ALLTogether1 v6.0` into `ALLTogether_Thrombosis_Guidelines_v1.0.pdf`.
